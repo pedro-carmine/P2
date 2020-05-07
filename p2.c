@@ -22,7 +22,7 @@ typedef struct node {
   struct node *next;
 } node;
 
-typedef struct {
+typedef struct ht{
   node **entries;
 } ht;
 
@@ -47,31 +47,33 @@ node * push(node * head, char * s) {
   return new;
 }
 
-void print_team(node * head, int cmd_count) {
-  node * aux;
-  aux = head;
-  printf("%d %s\n", cmd_count, aux->t->nome);
+void print_team(ht * table, int cmd_count) {
+  ht * aux;
+  aux = table;
+  while (aux->entries[i])
 }
 
 void addTeam(ht * table) {
   int key;
-  ht * aux;
+  node * aux;
   char team1_buffer[MAX_CHAR];
   scanf(" %[^:\n]", team1_buffer);
   key = hash(team1_buffer);
-  while (table->entries[key]->next != NULL) {
-    aux = table->entries[key]->next;
+  aux = table->entries[key]->next;
+  while (aux != NULL) {
+    aux = aux->next;
   }
-  aux = aux->next;
 }
 
 ht * hash_init() {
   int i = 0;
-  ht *table= malloc(sizeof(ht));
+  ht * table= malloc(sizeof(struct ht));
+  table->entries = malloc(sizeof(struct node) * TABLE_SIZE);
   for (; i < TABLE_SIZE; i++) {
     table->entries[i] = malloc(sizeof(struct node));
+    table->entries[i]->t = NULL;
+    table->entries[i]->next = NULL;
   }
-
 return table;
 
 }
@@ -92,6 +94,7 @@ int main() {
         addTeam(table);
         break;
       case 'T':
+        print_team(table);
         break;
     }
   }
