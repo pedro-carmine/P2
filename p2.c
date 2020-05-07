@@ -55,23 +55,25 @@ void print_team(node * head, int cmd_count) {
 
 void addTeam(ht * table) {
   int key;
-  node* aux;
+  ht * aux;
   char team1_buffer[MAX_CHAR];
   scanf(" %[^:\n]", team1_buffer);
   key = hash(team1_buffer);
-  while (table->entries[key]->next!=NULL) {
-    aux=table->entries[key]->next;
-}
+  while (table->entries[key]->next != NULL) {
+    aux = table->entries[key]->next;
+  }
   aux = aux->next;
 }
 
-ht* hash_init() {
+ht * hash_init() {
   int i = 0;
   ht *table= malloc(sizeof(ht));
   for (; i < TABLE_SIZE; i++) {
     table->entries[i] = malloc(sizeof(struct node));
   }
+
 return table;
+
 }
 
 
@@ -79,7 +81,6 @@ int main() {
   char choice;
   int cmd_count = -1;
   ht * table = hash_init();
-  table->entries = malloc(sizeof(node));
 
   while ((choice = getchar()) != 'x' && choice != EOF) {
     switch (choice) {
