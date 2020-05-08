@@ -3,11 +3,12 @@
 #include <string.h>
 
 #define MAX_CHAR 1023
-#define TABLE_SIZE 1000
+#define TABLE_SIZE 3
 
 
 typedef struct team {
   char * nome;
+  int wins;
 } Team;
 
 typedef struct game {
@@ -43,6 +44,7 @@ entry * ht_pair(unsigned int key, char * buffer) {
   entry * entrie = malloc(sizeof(entry));
   entrie->t = malloc(sizeof(Team));
   entrie->t->nome = malloc(sizeof(char) * (strlen(buffer) + 1));
+  entrie->t->wins = 0;
   strcpy(entrie->t->nome, buffer);
   entrie->key = key;
 
@@ -50,15 +52,15 @@ entry * ht_pair(unsigned int key, char * buffer) {
   return entrie;
 }
 
-void addTeam(ht * hashtable) {
+void addTeam(ht * hashtable, int cmd_count) {
+  char teamname[MAX_CHAR];
   unsigned int key;
-  char buffer[MAX_CHAR];
-  scanf(" %[^:\n]", buffer);
-  key = hash(buffer);
+  scanf(" %[^:\n]", teamname);
+  key = hash(teamname);
   entry * entrie = hashtable->entries[key];
 
   if (entrie == NULL) {
-    hashtable->entries[key] = ht_pair(key, buffer);
+    hashtable->entries[key] = ht_pair(key, teamname);
     return;
   }
 
@@ -66,16 +68,20 @@ void addTeam(ht * hashtable) {
 
   while (entrie != NULL) {
     if (entrie->key == key) {
-      free(entrie->t->nome);
-      entrie->t->nome = malloc(sizeof(char) * (strlen(buffer) + 1));
-      strcpy(entrie->t->nome, buffer);
-      return;
+      if (strcmp(entrie->t->nome, teamname) != 0 && entrie->next == NULL) {
+        entrie->next = ht_pair(key, teamname);
+        return;
+      }
+      else if (strcmp(entrie->t->nome, teamname) == 0) {
+        printf("%d Equipa existente\n", cmd_count);
+        return;
+      }
     }
     prev = entrie;
     entrie = prev->next;
   }
 
-  prev->next = ht_pair(key, buffer);
+  prev->next = ht_pair(key, teamname);
 }
 
 int ht_get(ht * hashtable) {
@@ -89,9 +95,9 @@ int ht_get(ht * hashtable) {
     return -1;
 
   while (entrie != NULL) {
-    if (entrie->key == key) {
+    if (strcmp(entrie->t->nome, name) == 0)
       return entrie->key;
-    }
+
     entrie = entrie->next;
   }
   return -1;
@@ -108,24 +114,33 @@ ht * hash_init() {
   return hashtable;
 }
 
+void getTeam(ht * hashtable, int cmd_count) {
+  int team = ht_get(hashtable);
+  if (team != -1) {
+    printf("%d %s %d\n", cmd_count, hashtable->entries[team]->t->nome, hashtable->entries[team]->t->wins);
+  }
+  else
+    printf("%d Equipa inexistente\n", cmd_count);
+}
 
 int main() {
   char choice;
-  int cmd_count = -1;
+  int cmd_count = 0;
   ht * hashtable = hash_init();
 
   while ((choice = getchar()) != 'x' && choice != EOF) {
     switch (choice) {
       case 'a':
         cmd_count++;
+        addGame();
         break;
       case 'A':
         cmd_count++;
-        addTeam(hashtable);
+        addTeam(hashtable, cmd_count);
         break;
-      case 'T':
+      case 'P':
         cmd_count++;
-        printf("%d\n", ht_get(hashtable));
+        getTeam(hashtable, cmd_count);
         break;
     }
   }
