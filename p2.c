@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define MAX_CHAR 1023
-#define TABLE_SIZE 1
+#define TABLE_SIZE 100
 
 typedef struct team {
   char * nome;
@@ -336,7 +336,7 @@ void removeGame(ht * game_ht, int cmd_count) {
   entrie = game_ht->entries[key];
 
   if (entrie == NULL) {
-    printf ("%d Equipa inexistente.\n", cmd_count);
+    printf ("%d Jogo inexistente.\n", cmd_count);
   }
 
   if (searchGame(entrie, buffer)) {
