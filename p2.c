@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define MAX_CHAR 1023
-#define TABLE_SIZE 100
+#define TABLE_SIZE 1000
 
 typedef struct team {
   char * nome;
@@ -91,7 +91,6 @@ entry * ht_pair_game(unsigned int key, char * buffer, Team * t1, Team * t2, int 
 
   return entrie;
 }
-
 
 void addTeam(ht * hashtable, int cmd_count) {
   char teamname[MAX_CHAR];
@@ -200,7 +199,7 @@ void getGame(ht * game_ht, int cmd_count) {
   }
 }
 
-Game * addGame(ht * hashtable, ht * game_ht, int cmd_count) {
+Game * addGame(ht * hashtable, ht * game_ht, int cmd_count, int * game_count) {
   char gameName[MAX_CHAR];
   char t1_name[MAX_CHAR];
   char t2_name[MAX_CHAR];
@@ -224,12 +223,14 @@ Game * addGame(ht * hashtable, ht * game_ht, int cmd_count) {
       return NULL;
     }
     game_ht->entries[key] = ht_pair_game(key, gameName, t1, t2, score1, score2);
+    (*game_count)++;
     return game_ht->entries[key]->game;
   }
 
   while (entrie != NULL) {
     if (strcmp(entrie->game->gameName, gameName) != 0 && entrie->next == NULL && entrie->game != NULL && t1 != NULL && t2 != NULL) {
       entrie->next = ht_pair_game(key, gameName, t1, t2, score1, score2);
+      (*game_count)++;
       return entrie->next->game;
     }
     else if (strcmp(entrie->game->gameName, gameName) == 0) {
@@ -245,9 +246,9 @@ Game * addGame(ht * hashtable, ht * game_ht, int cmd_count) {
     return NULL;
   }
   prev->next = ht_pair_game(key, gameName, t1, t2, score1, score2);
+  (*game_count)++;
   return prev->next->game;
 }
-
 
 void changeScore(ht * game_ht, int cmd_count) {
   char buffer[MAX_CHAR];
@@ -324,7 +325,7 @@ void destroyTeam(ht * hashtable) {
   free(hashtable);
 }
 
-void removeGame(ht * game_ht, int cmd_count) {
+orderedGames * removeGame(ht * game_ht, int cmd_count, orderedGames * head) {
   char buffer[MAX_CHAR];
   entry * entrie;
   entry * prev;
@@ -332,16 +333,33 @@ void removeGame(ht * game_ht, int cmd_count) {
   idx = 0;
 
   scanf(" %[^\n]", buffer);
+
   key = hash(buffer);
   entrie = game_ht->entries[key];
-
+  /* if theres nothing in the entrie the game doesn't exist */
   if (entrie == NULL) {
     printf ("%d Jogo inexistente.\n", cmd_count);
+    return head;
   }
 
   if (searchGame(entrie, buffer)) {
+    /* removes the game from the ordered games list*/
+    orderedGames * aux, prevv;
+    for (aux = head, prevv = NULL; aux != NULL; prevv = aux, aux = aux->next) {
+      if (strcmp(aux->game->gameName, buffer) == 0) {
+        if (aux == head) {
+          head = aux->next;
+        }
+        else {
+          prevv->next = aux->next;
+        }
+        free(aux);
+        break;
+      }
+    }
+    /* removes the game from the hashtable */
     while (entrie != NULL) {
-
+      /* cycle true the entrie in case theres collision */
       if (strcmp(entrie->game->gameName, buffer) == 0) {
 
         if (entrie->next == NULL && idx == 0) {
@@ -371,7 +389,7 @@ void removeGame(ht * game_ht, int cmd_count) {
         free(entrie->game->gameName);
         free(entrie->game);
         free(entrie);
-        return;
+        return head;
       }
 
       prev = entrie;
@@ -381,7 +399,26 @@ void removeGame(ht * game_ht, int cmd_count) {
 
     }
   }
+  else {
+    printf("%d Jogo inexistente.\n", cmd_count);
+    return head;
+  }
 }
+
+int cmp_win(Team * t1, Team * t2) {
+  return (t1->wins - t2->wins);
+}
+
+/*void sortGames(ht * game_ht, int cmd_count, int game_count) {
+  entry * aux;
+  int i = 0;
+  for (; i < TABLE_SIZE; i++) {
+    aux = hashtable->entries[i];
+    while (aux->next != NULL) {
+      qsort(hashtable, game_count, sizeof(Team), cmp_win(aux->));
+    }
+  }
+}*/
 
 void destroyGame(ht * hashtable) {
   int i;
@@ -398,34 +435,39 @@ void destroyGame(ht * hashtable) {
 }
 
 orderedGames * push(orderedGames * head, Game * game) {
-
+  /* if the game returned from the addGame function is NULL i.e wrong addGame() input, it doesn't add to the ordered list and return the unchanged list */
   if (game == NULL) {
     return head;
   }
-
+  /* if it is a valid game, adds to the end of the list */
   else {
     orderedGames * novo;
+    orderedGames * aux;
     novo = malloc(sizeof(orderedGames));
+    aux = head;
+    /* if the list is not empty */
+    if (aux != NULL) {
+      while (aux->next != NULL) {
+        aux = aux->next;
+      }
+    }
+    /* if the list is empty */
+    else {
+      novo->game = game;
+      novo->next = NULL;
+      return novo;
+    }
+    aux->next = novo;
     novo->game = game;
-    novo->next = head;
-    return novo;
+    novo->next = NULL;
+    return head;
   }
 }
 
-orderedGames * rev(orderedGames * head) {
-  orderedGames * aux1 = NULL;
-  orderedGames * aux2 = head;
-
-  while (aux2 != NULL) {
-    aux1 = push(aux1, aux2->game);
-    aux2 = aux2->next;
-  }
-  return aux1;
-}
-
+/* function that frees all orderedGames nodes in the end of the program so theres no memory leak */
 orderedGames * destroy(orderedGames * head) {
   orderedGames * novo = head;
-
+  /* cycle until it reaches the end of the list */
   while (novo != NULL) {
     orderedGames * aux = novo->next;
     free(novo);
@@ -437,16 +479,17 @@ orderedGames * destroy(orderedGames * head) {
 void print(orderedGames * head, int cmd_count) {
   orderedGames * aux;
   for (aux = head; aux != NULL; aux = aux->next) {
+    if (aux->game != NULL && aux->game->gameName != NULL) {
     printf("%d %s %s %s %d %d\n", cmd_count, aux->game->gameName, aux->game->t1->nome, aux->game->t2->nome, aux->game->score1, aux->game->score2);
+  }
   }
 }
 
 int main() {
-  Game * game;
-  orderedGames * aux;
   orderedGames * init;
   char choice;
   int cmd_count = 0;
+  int game_count = 0;
   ht * hashtable = hash_init();
   ht * game_ht = hash_init();
   init = NULL;
@@ -456,8 +499,7 @@ int main() {
     switch (choice) {
       case 'a':
         cmd_count++;
-        game = addGame(hashtable, game_ht, cmd_count);
-        init = push(init, game);
+        init = push(init, addGame(hashtable, game_ht, cmd_count, &game_count));
         break;
       case 'p':
         cmd_count++;
@@ -465,9 +507,7 @@ int main() {
         break;
       case 'l':
         cmd_count++;
-        aux = rev(init);
-        print(aux, cmd_count);
-        destroy(aux);
+        print(init, cmd_count);
         break;
       case 'A':
         cmd_count++;
@@ -483,10 +523,15 @@ int main() {
         break;
       case 'r':
         cmd_count++;
-        removeGame(game_ht, cmd_count);
+        init = removeGame(game_ht, cmd_count, init);
+        break;
+      case 'g':
+        cmd_count++;
+      /*  sortGames(init, cmd_count, team_count);*/
         break;
     }
   }
+
   destroy(init);
   destroyGame(game_ht);
   destroyTeam(hashtable);
